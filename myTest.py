@@ -18,8 +18,16 @@ def test_naive_blending():
     plt.show()
 
 
+def test_gaussianPyr():
+    img = cv2.imread("boxman.jpg", cv2.IMREAD_GRAYSCALE)
+    pyr_list = gaussianPyr(img)
+    for im in pyr_list:
+        print(im.shape)
+
+
 def main():
-    test_naive_blending()
+    # test_naive_blending()
+    test_gaussianPyr()
 
 
 if __name__ == '__main__':
