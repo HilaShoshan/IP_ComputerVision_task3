@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 from ex3_utils import *
 
 
-def test_naive_blending():
+def test_super_naive_blending():
     img1 = cv2.imread("dog.jpg", cv2.IMREAD_GRAYSCALE)
     img2 = cv2.imread("lion.jpg", cv2.IMREAD_GRAYSCALE)
-    blend = naive_blending(img1, img2)
+    blend = super_naive_blending(img1, img2)
     plt.gray()
     plt.imshow(img1)
     plt.show()
@@ -26,7 +26,7 @@ def test_gaussianPyr():
 
 
 def main():
-    # test_naive_blending()
+    # test_super_naive_blending()
     test_gaussianPyr()
 
 

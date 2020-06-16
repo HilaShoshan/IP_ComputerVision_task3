@@ -48,10 +48,10 @@ def laplaceianExpand(lap_pyr: List[np.ndarray]) -> np.ndarray:
 
 def gaussianPyr(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     ans = []
-    ans.append(gauss_blur(img))
-    temp_img = gauss_blur(img)
-    for i in range(levels - 1):
-        temp_img = reduce(temp_img)  # 2 times smaller image
+    ans.append(img)  # level 0 - the original image
+    temp_img = img.copy()
+    for x in range(1, levels):
+        temp_img = reduce(temp_img, x)  # 2 times smaller image
         ans.append(temp_img)
     return ans
 
@@ -62,10 +62,10 @@ def gauss_blur(img: np.ndarray) -> np.ndarray:
     return blur_img
 
 
-def reduce(img: np.ndarray) -> np.ndarray:
+def reduce(img: np.ndarray, x: int) -> np.ndarray:
     blur_img = gauss_blur(img)
-    width = int(blur_img.shape[1] / 2)
-    height = int(blur_img.shape[0] / 2)
+    width = int(blur_img.shape[1] / (2**x))  # ??? 2**x
+    height = int(blur_img.shape[0] / (2**x))
     new_img = cv2.resize(blur_img, (width, height))
     for i in range(1, height, 2):
         for j in range(1, width, 2):
@@ -105,6 +105,10 @@ def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int
 
 
 def naive_blending(img1: np.ndarray, img2: np.ndarray):
+    pass
+
+
+def super_naive_blending(img1: np.ndarray, img2: np.ndarray):
     width = img1.shape[1]
     height = img1.shape[0]
     if img1.shape != img2.shape:
