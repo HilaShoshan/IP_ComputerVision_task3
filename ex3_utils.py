@@ -48,27 +48,31 @@ def laplaceianExpand(lap_pyr: List[np.ndarray]) -> np.ndarray:
 
 def gaussianPyr(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     ans = []
+    width = (2**levels) * int(img.shape[1] / (2 ** levels))
+    height = (2**levels) * int(img.shape[0] / (2 ** levels))
+    img = cv2.resize(img, (width, height))  # resize the image to dimensions that can be divided into 2 x times
     ans.append(img)  # level 0 - the original image
     temp_img = img.copy()
-    for x in range(1, levels):
-        temp_img = reduce(temp_img, x)  # 2 times smaller image
+    for i in range(1, levels):
+        temp_img = reduce(temp_img)  # 2 times smaller image
         ans.append(temp_img)
     return ans
 
 
-def gauss_blur(img: np.ndarray) -> np.ndarray:
-    g_kernel = cv2.getGaussianKernel(5, 0.3)
+def gauss_blur(img: np.ndarray, kernel_sum: int) -> np.ndarray:
+    g_kernel = cv2.getGaussianKernel(5, 0.3)  # sum of kernel = 1
+    g_kernel = kernel_sum * g_kernel
     blur_img = cv2.filter2D(img, -1, g_kernel, borderType=cv2.BORDER_REPLICATE)
     return blur_img
 
 
-def reduce(img: np.ndarray, x: int) -> np.ndarray:
-    blur_img = gauss_blur(img)
-    width = int(blur_img.shape[1] / (2**x))  # ??? 2**x
-    height = int(blur_img.shape[0] / (2**x))
+def reduce(img: np.ndarray) -> np.ndarray:
+    blur_img = gauss_blur(img, 1)
+    width = int(blur_img.shape[1] / 2)
+    height = int(blur_img.shape[0] / 2)
     new_img = cv2.resize(blur_img, (width, height))
-    for i in range(1, height, 2):
-        for j in range(1, width, 2):
+    for i in range(1, img.shape[0], 2):
+        for j in range(1, img.shape[1], 2):
             row = int(i/2)  # the corresponding row of the new image
             col = int(j/2)  # the corresponding column of the new image
             new_img[row, col] = blur_img[i, j]  # sub-sampling
@@ -84,8 +88,15 @@ def reduce(img: np.ndarray, x: int) -> np.ndarray:
 
 
 def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
-
-    pass
+    width = img.shape[1] * 2
+    height = img.shape[0] * 2
+    expanded_img = np.zeros((height, width)).astype('uint8')
+    for i in range(1, height, 2):
+        for j in range(1, width, 2):
+            row = int(i / 2)  # the corresponding row of the smaller image
+            col = int(j / 2)  # the corresponding column of the smaller image
+            expanded_img[i, j] = img[row, col]
+    return expanded_img
 
 
 """
