@@ -19,22 +19,37 @@ def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (
     pass
 
 
-def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
-    """
+"""
     Creates a Laplacian pyramid
     :param img: Original image
     :param levels: Pyramid depth
     :return: Laplacian Pyramid (list of images)
-    """
-    pass
+"""
 
 
-def laplaceianExpand(lap_pyr: List[np.ndarray]) -> np.ndarray:
-    """
+def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
+    gauss_pyr = gaussianPyr(img, levels)
+    ans = []
+    ans.append(gauss_pyr[-1])  # last level of laplacian pyramid is the smallest image in gaussianPyr
+    g_kernel = cv2.getGaussianKernel(5, 0.3)
+    i = levels - 1
+    while i > 0:  # go through the list from end to start
+        expand = gaussExpand(gauss_pyr[i], g_kernel)
+        laplace = np.subtract(gauss_pyr[i-1], expand)
+        ans.insert(0, laplace)
+        i -= 1
+    return ans
+
+
+"""
     Resotrs the original image from a laplacian pyramid
     :param lap_pyr: Laplacian Pyramid
     :return: Original image
-    """
+"""
+
+
+def laplaceianExpand(lap_pyr: List[np.ndarray]) -> np.ndarray:
+
     pass
 
 
@@ -60,7 +75,7 @@ def gaussianPyr(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
 
 
 def gauss_blur(img: np.ndarray, kernel_sum: int) -> np.ndarray:
-    g_kernel = cv2.getGaussianKernel(5, 0.3)  # sum of kernel = 1
+    g_kernel = cv2.getGaussianKernel(5, 0.3)  # sum of kernel = 1 (?)
     g_kernel = kernel_sum * g_kernel
     blur_img = cv2.filter2D(img, -1, g_kernel, borderType=cv2.BORDER_REPLICATE)
     return blur_img
@@ -90,13 +105,18 @@ def reduce(img: np.ndarray) -> np.ndarray:
 def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
     width = img.shape[1] * 2
     height = img.shape[0] * 2
-    expanded_img = np.zeros((height, width)).astype('uint8')
+    expanded_img = np.zeros((height, width))  # .astype('uint8')
+    """
     for i in range(1, height, 2):
         for j in range(1, width, 2):
             row = int(i / 2)  # the corresponding row of the smaller image
             col = int(j / 2)  # the corresponding column of the smaller image
             expanded_img[i, j] = img[row, col]
-    return expanded_img
+            """
+    expanded_img[::2, ::2] = img
+    gs_k = 2 * (gs_k / np.sum(gs_k))  # make sure the sum of the kernel = 4
+    blur_img = cv2.filter2D(expanded_img, -1, gs_k, borderType=cv2.BORDER_REPLICATE)
+    return blur_img
 
 
 """
