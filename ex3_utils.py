@@ -105,7 +105,7 @@ def reduce(img: np.ndarray) -> np.ndarray:
 def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
     width = img.shape[1] * 2
     height = img.shape[0] * 2
-    expanded_img = np.zeros((height, width))  # .astype('uint8')
+    # expanded_img = np.zeros((height, width))  # .astype('uint8')
     """
     for i in range(1, height, 2):
         for j in range(1, width, 2):
@@ -113,8 +113,9 @@ def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
             col = int(j / 2)  # the corresponding column of the smaller image
             expanded_img[i, j] = img[row, col]
             """
-    expanded_img[::2, ::2] = img
-    gs_k = 2 * (gs_k / np.sum(gs_k))  # make sure the sum of the kernel = 4
+    expanded_img = cv2.resize(img, (img.shape[1] * 2, img.shape[0] * 2))
+    # expanded_img[::2, ::2] = img
+    # gs_k = 4 * (gs_k / np.sum(gs_k))  # make sure the sum of the kernel = 4
     blur_img = cv2.filter2D(expanded_img, -1, gs_k, borderType=cv2.BORDER_REPLICATE)
     return blur_img
 
@@ -157,3 +158,40 @@ def super_naive_blending(img1: np.ndarray, img2: np.ndarray):
         alpha -= step
     return blend_img
 
+"""
+def main():
+    img_path = 'pyr_bit.jpg'
+    img = cv2.imread(img_path, 0)
+    list_gaus = gaussianPyr(img, 4)
+    kernel_size = 5
+    sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+    kernel = cv2.getGaussianKernel(kernel_size, sigma)
+    list_exp = []
+    for i in range(4):
+        temp = gaussExpand(list_gaus[-1 - i], kernel)
+        list_exp.append(temp)
+
+    f, ax = plt.subplots(1, 4)
+    ax[0].imshow(cv2.cvtColor(list_exp[0], cv2.COLOR_BGR2RGB))
+    ax[1].imshow(cv2.cvtColor(list_exp[1], cv2.COLOR_BGR2RGB))
+    ax[2].imshow(cv2.cvtColor(list_exp[2], cv2.COLOR_BGR2RGB))
+    ax[3].imshow(cv2.cvtColor(list_exp[3], cv2.COLOR_BGR2RGB))
+    plt.show()
+    """
+
+def main():
+        img_path = 'pyr_bit.jpg'
+        img = cv2.imread(img_path, 0)
+        list_gaus = gaussianPyr(img, 4)
+        kernel_size = 5
+        sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+        kernel = cv2.getGaussianKernel(kernel_size, sigma)
+        for i in range(4):
+            temp = gaussExpand(list_gaus[-1 - i], kernel)
+            temp2 = cv2.pyrUp(list_gaus[-1 - i])
+            if temp.all() == temp2.all():
+                print("True")
+
+
+if __name__ == '__main__':
+    main()

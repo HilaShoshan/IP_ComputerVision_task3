@@ -57,7 +57,9 @@ def gaussianPyrAndExpand():
     pyr_list = gaussianPyr(img)
     for im in pyr_list:
         print(im.shape)
-    gs_k = cv2.getGaussianKernel(5, 0.3)
+    kernel_size = 5
+    sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+    gs_k = cv2.getGaussianKernel(kernel_size, sigma)
     expand = gaussExpand(pyr_list[1], gs_k)
     plt.gray()
     plt.imshow(expand)
@@ -78,8 +80,8 @@ def main():
     # test_super_naive_blending()
     # test_gaussianPyr()
     # test_reduce()
-    test_gaussExpand()
-    # gaussianPyrAndExpand()
+    # test_gaussExpand()
+    gaussianPyrAndExpand()
     # test_laplaceianReduce()
 
 

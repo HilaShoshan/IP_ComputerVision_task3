@@ -86,11 +86,11 @@ def blendDemo():
 
 
 def main():
-    img_path = 'boxman.jpg'
-    lkDemo(img_path)
+    #img_path = 'boxman.jpg'
+    #lkDemo(img_path)
     pyrGaussianDemo('pyr_bit.jpg')
     pyrLaplacianDemo('pyr_bit.jpg')
-    blendDemo()
+    #blendDemo()
 
 
 if __name__ == '__main__':
