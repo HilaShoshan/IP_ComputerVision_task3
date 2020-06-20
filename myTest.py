@@ -52,26 +52,37 @@ def test_gaussExpand():
 
 
 def gaussianPyrAndExpand():
-    img = cv2.imread("cat.jpg", cv2.IMREAD_GRAYSCALE)
+    img = cv2.cvtColor(cv2.imread("cat.jpg"), cv2.COLOR_BGR2RGB)
+    plt.gray()
     print("original shape: ", img.shape)
     pyr_list = gaussianPyr(img)
     for im in pyr_list:
         print(im.shape)
+        plt.imshow(im)
+        plt.show()
     kernel_size = 5
     sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
     gs_k = cv2.getGaussianKernel(kernel_size, sigma)
     expand = gaussExpand(pyr_list[1], gs_k)
-    plt.gray()
     plt.imshow(expand)
     plt.show()
 
 
 def test_laplaceianReduce():
-    img = cv2.imread("cat.jpg", cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread("pyr_bit.jpg", cv2.IMREAD_GRAYSCALE)
     laplacePyr = laplaceianReduce(img)
     for im in laplacePyr:
         print(im.shape)
         plt.gray()
+        plt.imshow(im)
+        plt.show()
+
+
+def test_build_laplacian_pyramid():
+    img = cv2.imread("boxman.jpg", cv2.IMREAD_GRAYSCALE)
+    laplace = build_laplacian_pyramid(img)
+    plt.gray()
+    for im in laplace:
         plt.imshow(im)
         plt.show()
 
@@ -81,8 +92,9 @@ def main():
     # test_gaussianPyr()
     # test_reduce()
     # test_gaussExpand()
-    gaussianPyrAndExpand()
+    # gaussianPyrAndExpand()
     # test_laplaceianReduce()
+    test_build_laplacian_pyramid()
 
 
 if __name__ == '__main__':

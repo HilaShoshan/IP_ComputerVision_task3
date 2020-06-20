@@ -29,9 +29,14 @@ def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (
 
 def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     gauss_pyr = gaussianPyr(img, levels)
-    ans = []
-    ans.append(gauss_pyr[-1])  # last level of laplacian pyramid is the smallest image in gaussianPyr
-    g_kernel = cv2.getGaussianKernel(5, 0.3)
+    for im in gauss_pyr:
+        plt.gray()
+        plt.imshow(im)
+        plt.show()
+    ans = [gauss_pyr[-1]]  # last level of laplacian pyramid is the smallest image in gaussianPyr
+    sigma = 0.3 * ((5 - 1) * 0.5 - 1) + 0.8
+    g_kernel = cv2.getGaussianKernel(5, sigma)
+    g_kernel = g_kernel.dot(g_kernel.T)
     i = levels - 1
     while i > 0:  # go through the list from end to start
         expand = gaussExpand(gauss_pyr[i], g_kernel)
@@ -39,6 +44,27 @@ def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
         ans.insert(0, laplace)
         i -= 1
     return ans
+
+
+def build_laplacian_pyramid(im, max_levels = 4):
+    """
+    build a laplacian pyramid for the image
+    :param im: ndarray
+    :param max_levels: num of levels for the pyramid
+    :param filter_size: size of filter for blurring
+    :return: all levels of the pyramid and the filter vector
+    """
+    sigma = 0.3 * ((5 - 1) * 0.5 - 1) + 0.8
+    g_kernel = cv2.getGaussianKernel(5, sigma)
+    g_kernel = g_kernel.dot(g_kernel.T)
+    pyr = []
+    gaussian = gaussianPyr(im, max_levels)
+    for i in range(1, max_levels):
+        temp = gaussExpand(gaussian[i], g_kernel)
+        temp = gaussian[i-1] - temp
+        pyr.append(temp)
+    pyr.append(gaussian[max_levels - 1])
+    return pyr
 
 
 """
@@ -74,23 +100,20 @@ def gaussianPyr(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     return ans
 
 
-def gauss_blur(img: np.ndarray, kernel_sum: int) -> np.ndarray:
-    g_kernel = cv2.getGaussianKernel(5, 0.3)  # sum of kernel = 1 (?)
-    g_kernel = kernel_sum * g_kernel
+def gauss_blur(img: np.ndarray) -> np.ndarray:
+    kernel_size = 5
+    sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+    g_kernel = cv2.getGaussianKernel(kernel_size, sigma)
+    g_kernel = g_kernel.dot(g_kernel.T)
+    # g_kernel = cv2.getGaussianKernel(5, 0.3)  # sum of kernel = 1 (?)
     blur_img = cv2.filter2D(img, -1, g_kernel, borderType=cv2.BORDER_REPLICATE)
     return blur_img
 
 
 def reduce(img: np.ndarray) -> np.ndarray:
-    blur_img = gauss_blur(img, 1)
-    width = int(blur_img.shape[1] / 2)
-    height = int(blur_img.shape[0] / 2)
-    new_img = cv2.resize(blur_img, (width, height))
-    for i in range(1, img.shape[0], 2):
-        for j in range(1, img.shape[1], 2):
-            row = int(i/2)  # the corresponding row of the new image
-            col = int(j/2)  # the corresponding column of the new image
-            new_img[row, col] = blur_img[i, j]  # sub-sampling
+    blur_img = gauss_blur(img)
+    new_img = blur_img[::2, ::2]
+    print("img: \n", blur_img[:10, :10], "\n new img: \n", new_img[:5, :5], '\n')
     return new_img
 
 
@@ -103,18 +126,7 @@ def reduce(img: np.ndarray) -> np.ndarray:
 
 
 def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
-    width = img.shape[1] * 2
-    height = img.shape[0] * 2
-    # expanded_img = np.zeros((height, width))  # .astype('uint8')
-    """
-    for i in range(1, height, 2):
-        for j in range(1, width, 2):
-            row = int(i / 2)  # the corresponding row of the smaller image
-            col = int(j / 2)  # the corresponding column of the smaller image
-            expanded_img[i, j] = img[row, col]
-            """
     expanded_img = cv2.resize(img, (img.shape[1] * 2, img.shape[0] * 2))
-    # expanded_img[::2, ::2] = img
     # gs_k = 4 * (gs_k / np.sum(gs_k))  # make sure the sum of the kernel = 4
     blur_img = cv2.filter2D(expanded_img, -1, gs_k, borderType=cv2.BORDER_REPLICATE)
     return blur_img
@@ -157,6 +169,7 @@ def super_naive_blending(img1: np.ndarray, img2: np.ndarray):
         blend_img[:, i] = alpha*img1[:, i] + (1-alpha)*img2[:, i]
         alpha -= step
     return blend_img
+
 
 """
 def main():
