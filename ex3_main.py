@@ -89,7 +89,7 @@ def main():
     #img_path = 'boxman.jpg'
     #lkDemo(img_path)
     pyrGaussianDemo('pyr_bit.jpg')
-    # pyrLaplacianDemo('pyr_bit.jpg')
+    pyrLaplacianDemo('pyr_bit.jpg')
     #blendDemo()
 
 

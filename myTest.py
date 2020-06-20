@@ -70,7 +70,7 @@ def gaussianPyrAndExpand():
 
 def test_laplaceianReduce():
     img = cv2.imread("pyr_bit.jpg", cv2.IMREAD_GRAYSCALE)
-    laplacePyr = laplaceianReduce(img)
+    laplacePyr = laplaceianReduce(img, 6)
     for im in laplacePyr:
         print(im.shape)
         plt.gray()
@@ -78,13 +78,15 @@ def test_laplaceianReduce():
         plt.show()
 
 
-def test_build_laplacian_pyramid():
+def test_laplaceianExpand():
     img = cv2.imread("boxman.jpg", cv2.IMREAD_GRAYSCALE)
-    laplace = build_laplacian_pyramid(img)
+    lap_pyr = laplaceianReduce(img)
+    orig = laplaceianExpand(lap_pyr)
     plt.gray()
-    for im in laplace:
-        plt.imshow(im)
-        plt.show()
+    plt.imshow(orig)
+    plt.show()
+    plt.imshow(img)
+    plt.show()
 
 
 def main():
@@ -94,7 +96,7 @@ def main():
     # test_gaussExpand()
     # gaussianPyrAndExpand()
     # test_laplaceianReduce()
-    test_build_laplacian_pyramid()
+    test_laplaceianExpand()
 
 
 if __name__ == '__main__':

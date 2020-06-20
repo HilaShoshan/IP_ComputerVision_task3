@@ -27,16 +27,22 @@ def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (
 """
 
 
+def get_gaussian1D():
+    kernel_size = 5
+    sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
+    g_kernel = cv2.getGaussianKernel(kernel_size, sigma)
+    return g_kernel
+
+
+def gauss_blur(img: np.ndarray, filter_vec) -> np.ndarray:
+    temp = cv2.filter2D(img, -1, filter_vec, borderType=cv2.BORDER_REPLICATE)
+    return cv2.filter2D(temp, -1, np.transpose(filter_vec), borderType=cv2.BORDER_REPLICATE)
+
+
 def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     gauss_pyr = gaussianPyr(img, levels)
-    for im in gauss_pyr:
-        plt.gray()
-        plt.imshow(im)
-        plt.show()
     ans = [gauss_pyr[-1]]  # last level of laplacian pyramid is the smallest image in gaussianPyr
-    sigma = 0.3 * ((5 - 1) * 0.5 - 1) + 0.8
-    g_kernel = cv2.getGaussianKernel(5, sigma)
-    g_kernel = g_kernel.dot(g_kernel.T)
+    g_kernel = get_gaussian1D()
     i = levels - 1
     while i > 0:  # go through the list from end to start
         expand = gaussExpand(gauss_pyr[i], g_kernel)
@@ -44,27 +50,6 @@ def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
         ans.insert(0, laplace)
         i -= 1
     return ans
-
-
-def build_laplacian_pyramid(im, max_levels = 4):
-    """
-    build a laplacian pyramid for the image
-    :param im: ndarray
-    :param max_levels: num of levels for the pyramid
-    :param filter_size: size of filter for blurring
-    :return: all levels of the pyramid and the filter vector
-    """
-    sigma = 0.3 * ((5 - 1) * 0.5 - 1) + 0.8
-    g_kernel = cv2.getGaussianKernel(5, sigma)
-    g_kernel = g_kernel.dot(g_kernel.T)
-    pyr = []
-    gaussian = gaussianPyr(im, max_levels)
-    for i in range(1, max_levels):
-        temp = gaussExpand(gaussian[i], g_kernel)
-        temp = gaussian[i-1] - temp
-        pyr.append(temp)
-    pyr.append(gaussian[max_levels - 1])
-    return pyr
 
 
 """
@@ -75,8 +60,15 @@ def build_laplacian_pyramid(im, max_levels = 4):
 
 
 def laplaceianExpand(lap_pyr: List[np.ndarray]) -> np.ndarray:
-
-    pass
+    levels = len(lap_pyr)
+    temp = lap_pyr[-1]  # the smallest image (from the gaussPyramid)
+    gs_k = get_gaussian1D()
+    i = levels - 1
+    while i > 0:  # go through the list from end to start
+        expand = gaussExpand(temp, gs_k)
+        temp = expand + lap_pyr[i - 1]
+        i -= 1
+    return temp
 
 
 """
@@ -100,18 +92,9 @@ def gaussianPyr(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     return ans
 
 
-def gauss_blur(img: np.ndarray) -> np.ndarray:
-    kernel_size = 5
-    sigma = 0.3 * ((kernel_size - 1) * 0.5 - 1) + 0.8
-    g_kernel = cv2.getGaussianKernel(kernel_size, sigma)
-    g_kernel = g_kernel.dot(g_kernel.T)
-    # g_kernel = cv2.getGaussianKernel(5, 0.3)  # sum of kernel = 1 (?)
-    blur_img = cv2.filter2D(img, -1, g_kernel, borderType=cv2.BORDER_REPLICATE)
-    return blur_img
-
-
 def reduce(img: np.ndarray) -> np.ndarray:
-    blur_img = gauss_blur(img)
+    g_kernel = get_gaussian1D()
+    blur_img = gauss_blur(img, g_kernel)
     new_img = blur_img[::2, ::2]
     print("img: \n", blur_img[:10, :10], "\n new img: \n", new_img[:5, :5], '\n')
     return new_img
@@ -126,10 +109,9 @@ def reduce(img: np.ndarray) -> np.ndarray:
 
 
 def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
-    expanded_img = cv2.resize(img, (img.shape[1] * 2, img.shape[0] * 2))
-    # gs_k = 4 * (gs_k / np.sum(gs_k))  # make sure the sum of the kernel = 4
-    blur_img = cv2.filter2D(expanded_img, -1, gs_k, borderType=cv2.BORDER_REPLICATE)
-    return blur_img
+    padded_im = np.zeros((img.shape[0] * 2, img.shape[1] * 2))
+    padded_im[::2, ::2] = img
+    return gauss_blur(padded_im, 2 * gs_k)
 
 
 """
