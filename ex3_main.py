@@ -27,10 +27,10 @@ def displayOpticalFlow(img: np.ndarray, pts: np.ndarray, uvs: np.ndarray):
 def pyrGaussianDemo(img_path):
     print("Gaussian Pyramid Demo")
     img = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB) / 255
-    h, w = img.shape[:2]
     lvls = 4
     gau_pyr = gaussianPyr(img, lvls)
 
+    h, w = gau_pyr[0].shape[:2]
     canv_h = h
     widths = np.cumsum([w // (2 ** i) for i in range(lvls)])
     widths = np.hstack([0, widths])
@@ -66,9 +66,9 @@ def pyrLaplacianDemo(img_path):
 
 
 def blendDemo():
-    im1 = cv2.cvtColor(cv2.imread('sunset.jpg'), cv2.COLOR_BGR2RGB) / 255
-    im2 = cv2.cvtColor(cv2.imread('cat.jpg'), cv2.COLOR_BGR2RGB) / 255
-    mask = cv2.cvtColor(cv2.imread('mask_cat.jpg'), cv2.COLOR_BGR2RGB) / 255
+    im1 = cv2.cvtColor(cv2.imread('input/sunset.jpg'), cv2.COLOR_BGR2RGB) / 255
+    im2 = cv2.cvtColor(cv2.imread('input/cat.jpg'), cv2.COLOR_BGR2RGB) / 255
+    mask = cv2.cvtColor(cv2.imread('input/mask_cat.jpg'), cv2.COLOR_BGR2RGB) / 255
 
     n_blend, im_blend = pyrBlend(im1, im2, mask, 4)
 
@@ -86,7 +86,7 @@ def blendDemo():
 
 
 def main():
-    #img_path = 'boxman.jpg'
+    #img_path = 'input/boxman.jpg'
     #lkDemo(img_path)
     pyrGaussianDemo('pyr_bit.jpg')
     pyrLaplacianDemo('pyr_bit.jpg')

@@ -96,7 +96,6 @@ def reduce(img: np.ndarray) -> np.ndarray:
     g_kernel = get_gaussian1D()
     blur_img = gauss_blur(img, g_kernel)
     new_img = blur_img[::2, ::2]
-    print("img: \n", blur_img[:10, :10], "\n new img: \n", new_img[:5, :5], '\n')
     return new_img
 
 
@@ -125,13 +124,47 @@ def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
 
 
 def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int) -> (np.ndarray, np.ndarray):
-    naive_blend = naive_blending(img_1, img_2)
+    img_1, img_2 = resize_as_mask(img_1, img_2, mask)
+    naive_blend = naive_blending(img_1, img_2, mask)
+    l_a = laplaceianReduce(img_1, levels)
+    l_b = laplaceianReduce(img_2, levels)
+    g_m = gaussianPyr(mask, levels)
+    l_c = []  # new laplacian pyramid
+    for k in range(levels):
+        """"
+        height = l_a[k].shape[0]
+        width = l_a[k].shape[1]
+        new_img = np.zeros(l_a[k].shape)
+        for i in range(height):
+            for j in range(width):
+                new_img[i, j] = g_m[k][i, j] * l_a[k][i, j] + (1 - g_m[k][i, j]) * l_b[k][i, j]
+        l_c.append(new_img)
+        """""
+        l_c.append(l_a[k] * g_m[k] + (1 - g_m[k]) * l_b[k])
+    pyr_blend = laplaceianExpand(l_c)  # np.clip(laplaceianExpand(l_c), 0, 1)
+    return naive_blend, pyr_blend
 
-    return naive_blend
+
+def resize_as_mask(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> (np.ndarray, np.ndarray):
+    new_width = mask.shape[1]
+    new_height = mask.shape[0]
+    img1 = cv2.resize(img1, (new_width, new_height))
+    img2 = cv2.resize(img2, (new_width, new_height))
+    return img1, img2
 
 
-def naive_blending(img1: np.ndarray, img2: np.ndarray):
-    pass
+def naive_blending(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    ans = np.empty_like(img1.shape)
+    is_mask_1 = mask == 1
+    for i in range(mask.shape[0]):  # rows
+        for j in range(mask.shape[1]):  # cols
+            if is_mask_1[i, j]:
+                ans[i, j] = img1[i, j]
+            else:
+                ans[i, j] = img2[i, j]
+    #ans[mask == 1] = img1[mask == 1]
+    #ans[mask == 0] = img2[mask == 0]
+    return ans
 
 
 def super_naive_blending(img1: np.ndarray, img2: np.ndarray):

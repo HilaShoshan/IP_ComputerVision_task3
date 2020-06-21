@@ -115,13 +115,38 @@ def laplacian_to_image(lpyr, filter_vec, coeff):
     return im
 
 
+def pyramid_blending(im1, im2, mask, max_levels, filter_size_im, filter_size_mask):
+    """
+    :param im1: are two input grayscale images to be blended.
+    :param im2: are two input grayscale images to be blended.
+    :param mask: is a boolean (i.e. dtype == np.bool) mask containing True and False representing which parts
+            of im1 and im2 should appear in the resulting im_blend. Note that a value of True corresponds to 1,
+            and False corresponds to 0.
+    :param max_levels: is the max_levels parameter you should use when generating the Gaussian and Laplacian pyramids.
+    :param filter_size_im:  is the size of the Gaussian filter (an odd scalar that represents a squared filter) which
+            defining the filter used in the construction of the Laplacian pyramids of im1 and im2.
+    :param filter_size_mask: is the size of the Gaussian filter(an odd scalar that represents a squared filter) which
+        defining the filter used in the construction of the Gaussian pyramid of mask.
+    :return: blended image from the 2 images.
+    """
+    L1, filter_vec = build_laplacian_pyramid(im1, max_levels, filter_size_im)
+    L2 = build_laplacian_pyramid(im2, max_levels, filter_size_im)[0]
+    mask_pyr = build_gaussian_pyramid(mask.astype(np.float64), max_levels, filter_size_mask)[0]
+    Lout = []
+    for i in range(max_levels):
+        Lout.append(L1[i]*mask_pyr[i] + (1-mask_pyr[i]) * L2[i])
+    coeff = [1] * max_levels
+    return laplacian_to_image(Lout, filter_vec, coeff)
+
+
 def main():
-    img = cv2.imread("boxman.jpg", cv2.IMREAD_GRAYSCALE)
-    laplace = build_laplacian_pyramid(img, 4, 5)[0]
+    img1 = cv2.imread("cat.jpg", cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread("lion.jpg", cv2.IMREAD_GRAYSCALE)
+    mask = cv2.imread("mask_cat.jpg", cv2.IMREAD_GRAYSCALE)
+    ans = pyramid_blending(img1, img2, mask, 5, 5, 5)
     plt.gray()
-    for im in laplace:
-        plt.imshow(im)
-        plt.show()
+    plt.imshow(ans)
+    plt.show()
 
 
 if __name__ == '__main__':

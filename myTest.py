@@ -89,6 +89,18 @@ def test_laplaceianExpand():
     plt.show()
 
 
+def test_pyrBlend():
+    img2 = cv2.imread("cat.jpg", cv2.IMREAD_GRAYSCALE)
+    img1 = cv2.imread("sunset.jpg", cv2.IMREAD_GRAYSCALE)
+    mask = cv2.imread("mask_cat.jpg", cv2.IMREAD_GRAYSCALE)
+    naive, pyr = pyrBlend(img1, img2, mask, 5)
+    plt.gray()
+    plt.imshow(pyr)
+    plt.show()
+    plt.imshow(naive)
+    plt.show()
+
+
 def main():
     # test_super_naive_blending()
     # test_gaussianPyr()
@@ -96,7 +108,8 @@ def main():
     # test_gaussExpand()
     # gaussianPyrAndExpand()
     # test_laplaceianReduce()
-    test_laplaceianExpand()
+    # test_laplaceianExpand()
+    test_pyrBlend()
 
 
 if __name__ == '__main__':
