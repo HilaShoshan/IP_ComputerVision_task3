@@ -7,16 +7,54 @@ from numpy.linalg import LinAlgError
 import matplotlib.pyplot as plt
 
 
-def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (np.ndarray, np.ndarray):
-    """
+"""
     Given two images, returns the Translation from im1 to im2
     :param im1: Image 1
     :param im2: Image 2
     :param step_size: The image sample size:
     :param win_size: The optical flow window size (odd number)
-    :return: Original points [[y,x]...], [[dU,dV]...] for each points
-    """
-    pass
+    :return: Original points [[x,y]...], [[dU,dV]...] for each points
+"""
+
+
+def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (np.ndarray, np.ndarray):
+
+    return np.zeros(im1.shape), np.zeros(im1.shape)
+
+
+from scipy import signal
+
+
+def optical_flow(I1g, I2g, window_size=5, tau=10):
+    kernel_x = np.array([[-1., 1.], [-1., 1.]])
+    kernel_y = np.array([[-1., -1.], [1., 1.]])
+    kernel_t = np.array([[1., 1.], [1., 1.]])  # *.25
+    w = int(window_size / 2)  # window_size is odd, all the pixels with offset in between [-w, w] are inside the window
+    I1g = I1g / 255.  # normalize pixels
+    I2g = I2g / 255.  # normalize pixels
+    # Implement Lucas Kanade
+    # for each point, calculate I_x, I_y, I_t
+    mode = 'same'
+    fx = signal.convolve2d(I1g, kernel_x, boundary='symm', mode=mode)
+    fy = signal.convolve2d(I1g, kernel_y, boundary='symm', mode=mode)
+    ft = signal.convolve2d(I2g, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(I1g, -kernel_t, boundary='symm', mode=mode)
+
+    u = np.zeros(I1g.shape)
+    v = np.zeros(I1g.shape)
+    # within window window_size * window_size
+    for i in range(w, I1g.shape[0] - w):
+        for j in range(w, I1g.shape[1] - w):
+            Ix = fx[i - w:i + w + 1, j - w:j + w + 1].flatten()
+            Iy = fy[i - w:i + w + 1, j - w:j + w + 1].flatten()
+            It = ft[i - w:i + w + 1, j - w:j + w + 1].flatten()
+            # b = ... # get b here
+            # A = ... # get A here
+            # if threshold τ is larger than the smallest eigenvalue of A'A:
+            nu = ...  # get velocity here
+            u[i, j] = nu[0]
+            v[i, j] = nu[1]
+
+    return u, v
 
 
 """
@@ -42,7 +80,7 @@ def gauss_blur(img: np.ndarray, filter_vec) -> np.ndarray:
 def laplaceianReduce(img: np.ndarray, levels: int = 4) -> List[np.ndarray]:
     gauss_pyr = gaussianPyr(img, levels)
     ans = [gauss_pyr[-1]]  # last level of laplacian pyramid is the smallest image in gaussianPyr
-    g_kernel = get_gaussian1D()
+    g_kernel = get_gaussian1D() * 4
     i = levels - 1
     while i > 0:  # go through the list from end to start
         expand = gaussExpand(gauss_pyr[i], g_kernel)
@@ -131,15 +169,6 @@ def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int
     g_m = gaussianPyr(mask, levels)
     l_c = []  # new laplacian pyramid
     for k in range(levels):
-        """"
-        height = l_a[k].shape[0]
-        width = l_a[k].shape[1]
-        new_img = np.zeros(l_a[k].shape)
-        for i in range(height):
-            for j in range(width):
-                new_img[i, j] = g_m[k][i, j] * l_a[k][i, j] + (1 - g_m[k][i, j]) * l_b[k][i, j]
-        l_c.append(new_img)
-        """""
         l_c.append(l_a[k] * g_m[k] + (1 - g_m[k]) * l_b[k])
     pyr_blend = laplaceianExpand(l_c)  # np.clip(laplaceianExpand(l_c), 0, 1)
     return naive_blend, pyr_blend
@@ -154,7 +183,7 @@ def resize_as_mask(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> (np.
 
 
 def naive_blending(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    ans = np.empty_like(img1.shape)
+    ans = np.zeros(img1.shape)
     is_mask_1 = mask == 1
     for i in range(mask.shape[0]):  # rows
         for j in range(mask.shape[1]):  # cols
@@ -162,8 +191,6 @@ def naive_blending(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> np.n
                 ans[i, j] = img1[i, j]
             else:
                 ans[i, j] = img2[i, j]
-    #ans[mask == 1] = img1[mask == 1]
-    #ans[mask == 0] = img2[mask == 0]
     return ans
 
 
@@ -172,7 +199,6 @@ def super_naive_blending(img1: np.ndarray, img2: np.ndarray):
     height = img1.shape[0]
     if img1.shape != img2.shape:
         img2 = cv2.resize(img2, (width, height))  # resize img2 to img1.shape
-        print(img1.shape, img2.shape)
     blend_img = np.zeros(img1.shape)
     bound1 = int(width/3)
     bound2 = int(width*2/3)

@@ -11,7 +11,7 @@ def lkDemo(img_path):
                   [0, 0, 1]], dtype=np.float)
     img_2 = cv2.warpPerspective(img_1, t, img_1.shape[::-1])
     st = time.time()
-    pts, uv = opticalFlow(img_1.astype(np.float), img_2.astype(np.float), step_size=20, win_size=5)
+    pts, uv = opticalFlow(img_1.astype(np.float), img_2.astype(np.float), 5, 20)
     et = time.time()
     print("Time: {:.4f}".format(et - st))
     displayOpticalFlow(img_2, pts, uv)
@@ -66,9 +66,9 @@ def pyrLaplacianDemo(img_path):
 
 
 def blendDemo():
-    im1 = cv2.cvtColor(cv2.imread('input/sunset.jpg'), cv2.COLOR_BGR2RGB) / 255
-    im2 = cv2.cvtColor(cv2.imread('input/cat.jpg'), cv2.COLOR_BGR2RGB) / 255
-    mask = cv2.cvtColor(cv2.imread('input/mask_cat.jpg'), cv2.COLOR_BGR2RGB) / 255
+    im1 = cv2.cvtColor(cv2.imread('sunset.jpg'), cv2.COLOR_BGR2RGB) / 255
+    im2 = cv2.cvtColor(cv2.imread('cat.jpg'), cv2.COLOR_BGR2RGB) / 255
+    mask = cv2.cvtColor(cv2.imread('mask_cat.jpg'), cv2.COLOR_BGR2RGB) / 255
 
     n_blend, im_blend = pyrBlend(im1, im2, mask, 4)
 
@@ -86,11 +86,11 @@ def blendDemo():
 
 
 def main():
-    #img_path = 'input/boxman.jpg'
-    #lkDemo(img_path)
+    img_path = 'boxman.jpg'
+    lkDemo(img_path)
     pyrGaussianDemo('pyr_bit.jpg')
     pyrLaplacianDemo('pyr_bit.jpg')
-    #blendDemo()
+    blendDemo()
 
 
 if __name__ == '__main__':

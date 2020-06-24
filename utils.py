@@ -3,25 +3,18 @@ import scipy.ndimage as sp
 from scipy import signal
 import matplotlib.pyplot as plt
 import cv2
-import copy
-from skimage.io import imread
 
 
 def build_filter_vec(filter_size):
     """
     returns a row vector shape (1, filter_size)
-
+    """
     filter_vec = [[1]]
     conv = [[1, 1]]
     div = np.power(2, filter_size - 1)
     for i in range(filter_size - 1):
         filter_vec = signal.convolve2d(filter_vec, conv, mode="full")
     return filter_vec / div
-    """
-    sigma = 0.3 * ((filter_size - 1) * 0.5 - 1) + 0.8
-    g_kernel = cv2.getGaussianKernel(filter_size, sigma)
-    # g_kernel = g_kernel.dot(g_kernel.T)
-    return g_kernel
 
 
 def reduce_image(im):
@@ -34,12 +27,9 @@ def blur(im, filter_vec):
     :param im: an ndarray
     :param filter_vec: the filter for blurring
     :return: blurred image
-
+    """
     temp = sp.filters.convolve(im, filter_vec)
     return sp.filters.convolve(temp, np.transpose(filter_vec))
-    """
-    temp = cv2.filter2D(im, -1, filter_vec, borderType=cv2.BORDER_REPLICATE)
-    return cv2.filter2D(temp, -1, np.transpose(filter_vec), borderType=cv2.BORDER_REPLICATE)
 
 
 def build_gaussian_pyramid(im, max_levels, filter_size):
@@ -115,6 +105,49 @@ def laplacian_to_image(lpyr, filter_vec, coeff):
     return im
 
 
+def stretch(im):
+    """
+    stretch values of image between 0 and 1
+    :param im: ndarray
+    :return: stretched image
+    """
+    mini = min(im.flatten())
+    maxi = max(im.flatten())
+    im = (im - mini) / (maxi - mini)
+    im[im < 0] = 0
+    im[im > 1] = 1
+    return im
+
+
+def render_pyramid(pyr, levels):
+    """
+    prepare pyramid for displaying
+    :param pyr: pyramid of an image
+    :param levels: num pf levels of pyramid
+    :return: rendered pyramid
+    """
+    res = stretch(pyr[0])
+    for i in range(1, levels):
+        temp = stretch(pyr[i])
+        new_im = np.zeros((res.shape[0], res.shape[1] + temp.shape[1]))
+        new_im[0:res.shape[0], 0:res.shape[1]] = res
+        new_im[0:pyr[i].shape[0], res.shape[1]:res.shape[1] + pyr[i].shape[1]] = temp
+        res = new_im
+    return res
+
+
+def display_pyramid(pyr, levels):
+    """
+    display pyramid
+    :param pyr: pyramid of an image
+    :param levels: num pf levels of pyramid
+    :return: None
+    """
+    res = render_pyramid(pyr, levels)
+    plt.figure()
+    plt.imshow(res, cmap="gray")
+
+
 def pyramid_blending(im1, im2, mask, max_levels, filter_size_im, filter_size_mask):
     """
     :param im1: are two input grayscale images to be blended.
@@ -139,13 +172,14 @@ def pyramid_blending(im1, im2, mask, max_levels, filter_size_im, filter_size_mas
     return laplacian_to_image(Lout, filter_vec, coeff)
 
 
+
 def main():
-    img1 = cv2.imread("cat.jpg", cv2.IMREAD_GRAYSCALE)
-    img2 = cv2.imread("lion.jpg", cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread("cat.jpg", cv2.IMREAD_GRAYSCALE)
+    img1 = cv2.imread("sunset.jpg", cv2.IMREAD_GRAYSCALE)
     mask = cv2.imread("mask_cat.jpg", cv2.IMREAD_GRAYSCALE)
-    ans = pyramid_blending(img1, img2, mask, 5, 5, 5)
+    pyr = pyramid_blending(img1, img2, mask, 5, 5, 5)
     plt.gray()
-    plt.imshow(ans)
+    plt.imshow(pyr)
     plt.show()
 
 
