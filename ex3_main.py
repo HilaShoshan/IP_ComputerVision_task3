@@ -67,6 +67,7 @@ def pyrLaplacianDemo(img_path):
     im = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2GRAY) / 255
     f, ax = plt.subplots(1, 3)
     im = im[:,:896]
+    print(np.unique((re_lap - im)[re_lap - im != 0]))
     ax[0].imshow(im)
     ax[1].imshow(re_lap)
     ax[2].imshow(re_lap - im)
