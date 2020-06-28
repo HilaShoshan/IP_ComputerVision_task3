@@ -29,28 +29,28 @@ def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (
 """""
 
 def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (np.ndarray, np.ndarray):
-    if win_size % 2 == 0:
-        raise Exception("window size must be odd")
-    Ix = cv2.Sobel(im2, cv2.CV_64F, 1, 0, ksize=5)
-    Iy = cv2.Sobel(im2, cv2.CV_64F, 0, 1, ksize=5)
-    It = im2 - im1
+    kernel = np.array([[-1, 0, 1]])
+    x_drive = cv2.filter2D(im2, -1, kernel)
+    y_drive = cv2.filter2D(im2, -1, kernel.T)
+    t_drive = im2 - im1
     points = []
-    d = []
+    u_v = []
     for i in range(win_size, im1.shape[0] - win_size + 1, step_size):
         for j in range(win_size, im1.shape[1] - win_size + 1, step_size):
-            starti, startj, endi, endj = i - win_size // 2, j - win_size // 2, i + win_size // 2 + 1, j + win_size // 2 + 1
-            b = -(It[starti:endi, startj:endj]).reshape(win_size ** 2, 1)
-            A = np.asmatrix(np.concatenate((Ix[starti:endi, startj:endj].reshape(win_size ** 2, 1),
-                                            Iy[starti:endi, startj:endj].reshape(win_size ** 2, 1)), axis=1))
-            values, vec = np.linalg.eig(A.T * A)
-            values.sort()
-            values = values[::-1]
-            if values[0] >= values[1] > 1 and values[0] / values[1] < 100:
-                # v = (A.T * A).I * A.T * b
-                v = np.array(np.dot(np.linalg.pinv(A), b))
-                points.append(np.array([j, i]))
-                d.append(v[::-1].copy())
-    return np.array(points), np.array(d)
+            x = x_drive[i - int(win_size / 2):i + int(win_size / 2), j - int(win_size / 2):j + int(win_size / 2)]
+            y = y_drive[i - int(win_size / 2):i + int(win_size / 2), j - int(win_size / 2):j + int(win_size / 2)]
+            t = t_drive[i - int(win_size / 2):i + int(win_size / 2), j - int(win_size / 2):j + int(win_size / 2)]
+            AtA = [[(x*x).sum(), (x*y).sum()],
+                   [(x*y).sum(), (y*y).sum()]]
+            lamdas = np.linalg.eigvals(AtA)
+            lamda2 = np.min(lamdas)
+            lamda1 = np.max(lamdas)
+            if lamda2 <= 1 or lamda1/lamda2 >= 100:
+                continue
+            arr = [[-(x*t).sum()], [-(y*t).sum()]]
+            u_v.append(np.linalg.inv(AtA).dot(arr))
+            points.append([j, i])
+    return np.array(points), np.array(u_v)
 
 
 """
