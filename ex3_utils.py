@@ -18,43 +18,26 @@ import matplotlib.pyplot as plt
 
 
 def opticalFlow(im1: np.ndarray, im2: np.ndarray, step_size=10, win_size=5) -> (np.ndarray, np.ndarray):
-
-    return np.zeros(im1.shape), np.zeros(im1.shape)
-
-
-from scipy import signal
-
-
-def optical_flow(I1g, I2g, window_size=5, tau=10):
-    kernel_x = np.array([[-1., 1.], [-1., 1.]])
-    kernel_y = np.array([[-1., -1.], [1., 1.]])
-    kernel_t = np.array([[1., 1.], [1., 1.]])  # *.25
-    w = int(window_size / 2)  # window_size is odd, all the pixels with offset in between [-w, w] are inside the window
-    I1g = I1g / 255.  # normalize pixels
-    I2g = I2g / 255.  # normalize pixels
-    # Implement Lucas Kanade
-    # for each point, calculate I_x, I_y, I_t
-    mode = 'same'
-    fx = signal.convolve2d(I1g, kernel_x, boundary='symm', mode=mode)
-    fy = signal.convolve2d(I1g, kernel_y, boundary='symm', mode=mode)
-    ft = signal.convolve2d(I2g, kernel_t, boundary='symm', mode=mode) + signal.convolve2d(I1g, -kernel_t, boundary='symm', mode=mode)
-
-    u = np.zeros(I1g.shape)
-    v = np.zeros(I1g.shape)
-    # within window window_size * window_size
-    for i in range(w, I1g.shape[0] - w):
-        for j in range(w, I1g.shape[1] - w):
-            Ix = fx[i - w:i + w + 1, j - w:j + w + 1].flatten()
-            Iy = fy[i - w:i + w + 1, j - w:j + w + 1].flatten()
-            It = ft[i - w:i + w + 1, j - w:j + w + 1].flatten()
-            # b = ... # get b here
-            # A = ... # get A here
-            # if threshold τ is larger than the smallest eigenvalue of A'A:
-            nu = ...  # get velocity here
-            u[i, j] = nu[0]
-            v[i, j] = nu[1]
-
-    return u, v
+    Ix = cv2.Sobel(im2, cv2.CV_64F, 1, 0, ksize=5)
+    Iy = cv2.Sobel(im2, cv2.CV_64F, 0, 1, ksize=5)
+    It = im2 - im1
+    points = []
+    d = []
+    for i in range(win_size, im1.shape[0] - win_size + 1, step_size):
+        for j in range(win_size, im1.shape[1] - win_size + 1, step_size):
+            starti, startj, endi, endj = i - win_size // 2, j - win_size // 2, i + win_size // 2 + 1, j + win_size // 2 + 1
+            b = -(It[starti:endi, startj:endj]).reshape(win_size ** 2, 1)
+            A = np.asmatrix(np.concatenate((Ix[starti:endi, startj:endj].reshape(win_size ** 2, 1),
+                                            Iy[starti:endi, startj:endj].reshape(win_size ** 2, 1)), axis=1))
+            values, vec = np.linalg.eig(A.T * A)
+            values.sort()
+            values = values[::-1]
+            if values[0] >= values[1] > 1 and values[0] / values[1] < 100:
+                # v = (A.T * A).I * A.T * b
+                v = np.array(np.dot(np.linalg.pinv(A), b))
+                points.append(np.array([j, i]))
+                d.append(v[::-1].copy())
+    return np.array(points), np.array(d)
 
 
 """
@@ -146,8 +129,12 @@ def reduce(img: np.ndarray) -> np.ndarray:
 
 
 def gaussExpand(img: np.ndarray, gs_k: np.ndarray) -> np.ndarray:
-    padded_im = np.zeros((img.shape[0] * 2, img.shape[1] * 2))
-    padded_im[::2, ::2] = img
+    if img.shape[-1] == 3:  # RGB img
+        padded_im =  np.zeros(((img.shape[0] * 2), (img.shape[1] * 2), 3))
+        padded_im[::2, ::2, :] = img
+    else:
+        padded_im = np.zeros((img.shape[0] * 2, img.shape[1] * 2))
+        padded_im[::2, ::2] = img
     return gauss_blur(padded_im, 2 * gs_k)
 
 
@@ -167,10 +154,18 @@ def pyrBlend(img_1: np.ndarray, img_2: np.ndarray, mask: np.ndarray, levels: int
     l_a = laplaceianReduce(img_1, levels)
     l_b = laplaceianReduce(img_2, levels)
     g_m = gaussianPyr(mask, levels)
-    l_c = []  # new laplacian pyramid
-    for k in range(levels):
-        l_c.append(l_a[k] * g_m[k] + (1 - g_m[k]) * l_b[k])
+    l_c = [None] * levels  # new laplacian pyramid
+    l_c[-1] = (l_a[levels-1] * g_m[levels-1] + (1 - g_m[levels-1]) * l_b[levels-1])
+    gs_k = get_gaussian1D() * 4
+    k = levels - 2
+    while k >= 0:  # go through the list from end to start
+        x = gaussExpand(l_c[k+1], gs_k) + l_a[k] * g_m[k] + (1 - g_m[k]) * l_b[k]
+        l_c[k] = x
+        k -= 1
     pyr_blend = laplaceianExpand(l_c)  # np.clip(laplaceianExpand(l_c), 0, 1)
+    new_width = pyr_blend.shape[1]
+    new_height = pyr_blend.shape[0]
+    naive_blend = cv2.resize(naive_blend, (new_width, new_height))
     return naive_blend, pyr_blend
 
 
@@ -183,14 +178,7 @@ def resize_as_mask(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> (np.
 
 
 def naive_blending(img1: np.ndarray, img2: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    ans = np.zeros(img1.shape)
-    is_mask_1 = mask == 1
-    for i in range(mask.shape[0]):  # rows
-        for j in range(mask.shape[1]):  # cols
-            if is_mask_1[i, j]:
-                ans[i, j] = img1[i, j]
-            else:
-                ans[i, j] = img2[i, j]
+    ans = img1*mask + img2*(1-mask)
     return ans
 
 

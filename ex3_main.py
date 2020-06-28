@@ -64,6 +64,14 @@ def pyrLaplacianDemo(img_path):
     ax[1, -1].hist(re_lap.ravel(), 256, [0, 1])
     plt.show()
 
+    im = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2GRAY) / 255
+    f, ax = plt.subplots(1, 3)
+    im = im[:,:896]
+    ax[0].imshow(im)
+    ax[1].imshow(re_lap)
+    ax[2].imshow(re_lap - im)
+    plt.show()
+
 
 def blendDemo():
     im1 = cv2.cvtColor(cv2.imread('sunset.jpg'), cv2.COLOR_BGR2RGB) / 255
@@ -86,8 +94,9 @@ def blendDemo():
 
 
 def main():
-    img_path = 'boxman.jpg'
-    lkDemo(img_path)
+
+    #img_path = 'boxman.jpg'
+    #lkDemo(img_path)
     pyrGaussianDemo('pyr_bit.jpg')
     pyrLaplacianDemo('pyr_bit.jpg')
     blendDemo()
